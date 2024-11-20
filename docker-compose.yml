@@ -1,0 +1,28 @@
+services:
+  mysql:
+    image: mysql:5.7
+    restart: always
+    environment:
+      - MYSQL_DATABASE=consult
+      - MYSQL_USER=${APP_MYSQL_USER}
+      - MYSQL_PASSWORD=${APP_MYSQL_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${APP_MYSQL_PASSWORD}
+    ports:
+      - "3306:3306"
+    expose:
+      - "3306"
+    volumes:
+      - mysql:/var/lib/mysql
+  mongodb:
+    image: mongo
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${APP_MONGO_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${APP_MONGO_PASSWORD}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb:/data/db
+
+volumes:
+  mysql:
+  mongodb:

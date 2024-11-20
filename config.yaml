@@ -1,0 +1,12 @@
+server:
+  port: 8080
+
+database:
+  primary:
+    host: "localhost"
+    port: 3306
+    name: "consult"
+  secondary:
+    host: "localhost"
+    port: 27017
+    name: "consult"

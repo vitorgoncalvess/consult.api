@@ -2,9 +2,11 @@ package api
 
 import (
 	"consult/internal/api/handler"
+	middle "consult/internal/api/middleware"
 	"log"
 
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/spf13/viper"
 )
 
@@ -19,9 +21,10 @@ func New(config *viper.Viper) *Server {
 		config: config,
 	}
 
-	jwtSecret := []byte(config.GetString("jwt_secret"))
+	server.app.Use(middleware.Logger())
+	server.app.Use(middleware.Recover())
 
-	server.routes(handler.New())
+	server.routes(handler.New(), middle.New(config))
 
 	return server
 }

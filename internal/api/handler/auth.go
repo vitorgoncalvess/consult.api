@@ -6,7 +6,6 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
-	"github.com/spf13/viper"
 )
 
 type User struct {
@@ -15,6 +14,7 @@ type User struct {
 }
 
 type JwtClaims struct {
+	Id    int
 	Email string `json:"email"`
 	jwt.RegisteredClaims
 }
@@ -30,18 +30,26 @@ func (h *Handler) Login(c echo.Context) error {
 		return err
 	}
 
-	v := viper.New()
-	v.SetEnvPrefix("APP")
-	v.AutomaticEnv()
-
 	claims := &JwtClaims{
-		Email: u.Email,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 2)),
 		},
 	}
 
-	jwtSecret := []byte(v.GetString("JWT_SECRET"))
+	res := h.conn.QueryRow("SELECT * FROM user WHERE email = ?", u.Email)
+
+	var password string
+	err := res.Scan(&claims.Id, &claims.Email, &password)
+
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	if password != u.Password {
+		return echo.NewHTTPError(http.StatusBadRequest, "Credenciais invalidas")
+	}
+
+	jwtSecret := []byte(h.config.GetString("JWT_SECRET"))
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	t, err := token.SignedString(jwtSecret)

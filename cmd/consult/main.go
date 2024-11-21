@@ -28,5 +28,7 @@ func main() {
 
 	server := api.New(config)
 
+	defer server.Stop()
+
 	server.Start()
 }

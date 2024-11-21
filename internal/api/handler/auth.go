@@ -8,19 +8,18 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type User struct {
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required"`
-}
-
 type JwtClaims struct {
-	Id    int
+	Id    int    `json:"id"`
 	Email string `json:"email"`
+	Role  string `json:"role"`
 	jwt.RegisteredClaims
 }
 
 func (h *Handler) Login(c echo.Context) error {
-	u := new(User)
+	u := new(struct {
+		Email    string
+		Password string
+	})
 
 	if err := c.Bind(u); err != nil {
 		return h.BadRequest(http.StatusBadRequest, err.Error())
@@ -30,18 +29,22 @@ func (h *Handler) Login(c echo.Context) error {
 		return err
 	}
 
+	user, err := h.repository.GetUserByEmail(u.Email)
+	// res := h.database.Conn.QueryRow("SELECT * FROM user WHERE email = ?", u.Email)
+
+	// var password string
+	// err := res.Scan(&claims.Id, &claims.Email, &password, &claims.Role)
+
 	claims := &JwtClaims{
+		Id:    user.Id,
+		Email: user.Email,
+		Role:  user.Role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 2)),
 		},
 	}
 
-	res := h.database.Conn.QueryRow("SELECT * FROM user WHERE email = ?", u.Email)
-
-	var password string
-	err := res.Scan(&claims.Id, &claims.Email, &password)
-
-	if err != nil || password != u.Password {
+	if err != nil || user.Password != u.Password {
 		return h.BadRequest(http.StatusBadRequest, "Credenciais inválidas.")
 	}
 
@@ -60,7 +63,11 @@ func (h *Handler) Login(c echo.Context) error {
 }
 
 func (h *Handler) Register(c echo.Context) error {
-	u := new(User)
+	u := new(struct {
+		Email    string
+		Password string
+		Role     string
+	})
 
 	if err := c.Bind(u); err != nil {
 		return h.BadRequest(http.StatusBadRequest, err.Error())
@@ -70,11 +77,11 @@ func (h *Handler) Register(c echo.Context) error {
 		return err
 	}
 
-	if res, _ := h.database.Conn.Query("SELECT * FROM user WHERE email = ?", u.Email); res.Next() {
+	if user, _ := h.repository.GetUserByEmail(u.Email); user.Email != "" {
 		return h.BadRequest(http.StatusConflict, "Já existe um email com essa conta.")
 	}
 
-	insert, err := h.database.Conn.Query("INSERT INTO user (email, password) VALUES (?, ?)", u.Email, u.Password)
+	insert, err := h.database.Conn.Query("INSERT INTO user (email, password, role) VALUES (?, ?, ?)", u.Email, u.Password, u.Role)
 
 	if err != nil {
 		return h.BadRequest(http.StatusInternalServerError, err.Error())
@@ -84,5 +91,6 @@ func (h *Handler) Register(c echo.Context) error {
 
 	return c.JSON(http.StatusCreated, echo.Map{
 		"email": u.Email,
+		"role":  u.Role,
 	})
 }

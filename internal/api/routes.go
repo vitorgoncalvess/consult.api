@@ -21,9 +21,10 @@ func (c *CustomValidator) Validate(i interface{}) error {
 }
 
 func (s *Server) routes(h *handler.Handler, m *middleware.Middleware) {
-	m.Config(s.app, []string{"/login"})
+	m.Config(s.app, []string{"/login", "/register"})
 
 	s.app.Validator = &CustomValidator{validator: validator.New()}
 
 	s.app.POST("/login", h.Login)
+	s.app.POST("/register", h.Register)
 }

@@ -23,7 +23,7 @@ func (h *Handler) Login(c echo.Context) error {
 	u := new(User)
 
 	if err := c.Bind(u); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		return h.BadRequest(http.StatusBadRequest, err.Error())
 	}
 
 	if err := c.Validate(u); err != nil {
@@ -36,17 +36,13 @@ func (h *Handler) Login(c echo.Context) error {
 		},
 	}
 
-	res := h.conn.QueryRow("SELECT * FROM user WHERE email = ?", u.Email)
+	res := h.database.Conn.QueryRow("SELECT * FROM user WHERE email = ?", u.Email)
 
 	var password string
 	err := res.Scan(&claims.Id, &claims.Email, &password)
 
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
-	}
-
-	if password != u.Password {
-		return echo.NewHTTPError(http.StatusBadRequest, "Credenciais invalidas")
+	if err != nil || password != u.Password {
+		return h.BadRequest(http.StatusBadRequest, "Credenciais inválidas.")
 	}
 
 	jwtSecret := []byte(h.config.GetString("JWT_SECRET"))
@@ -55,10 +51,38 @@ func (h *Handler) Login(c echo.Context) error {
 	t, err := token.SignedString(jwtSecret)
 
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return h.BadRequest(http.StatusInternalServerError, err.Error())
 	}
 
 	return c.JSON(http.StatusOK, echo.Map{
 		"token": t,
+	})
+}
+
+func (h *Handler) Register(c echo.Context) error {
+	u := new(User)
+
+	if err := c.Bind(u); err != nil {
+		return h.BadRequest(http.StatusBadRequest, err.Error())
+	}
+
+	if err := c.Validate(u); err != nil {
+		return err
+	}
+
+	if res, _ := h.database.Conn.Query("SELECT * FROM user WHERE email = ?", u.Email); res.Next() {
+		return h.BadRequest(http.StatusConflict, "Já existe um email com essa conta.")
+	}
+
+	insert, err := h.database.Conn.Query("INSERT INTO user (email, password) VALUES (?, ?)", u.Email, u.Password)
+
+	if err != nil {
+		return h.BadRequest(http.StatusInternalServerError, err.Error())
+	}
+
+	defer insert.Close()
+
+	return c.JSON(http.StatusCreated, echo.Map{
+		"email": u.Email,
 	})
 }

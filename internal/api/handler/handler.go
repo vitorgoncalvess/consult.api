@@ -1,21 +1,21 @@
 package handler
 
 import (
-	"database/sql"
+	"consult/internal/api/database"
 
+	"github.com/labstack/echo/v4"
 	"github.com/spf13/viper"
 )
 
-type Conn interface {
-	Query(query string, params ...any) (*sql.Rows, error)
-	QueryRow(query string, params ...any) *sql.Row
-}
-
 type Handler struct {
-	conn   Conn
-	config *viper.Viper
+	database *database.Database
+	config   *viper.Viper
 }
 
-func New(conn Conn, config *viper.Viper) *Handler {
-	return &Handler{conn, config}
+func New(database *database.Database, config *viper.Viper) *Handler {
+	return &Handler{database, config}
+}
+
+func (h *Handler) BadRequest(status int, message string) *echo.HTTPError {
+	return echo.NewHTTPError(status, message)
 }

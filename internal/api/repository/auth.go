@@ -21,18 +21,20 @@ func (r *Repository) GetUserByEmail(email string) (*User, error) {
 	return u, nil
 }
 
-func (r *Repository) SaveUser(user struct {
-	email    string
-	password string
-	role     string
-}) (*User, error) {
-	insert, err := r.database.Conn.Query("INSERT INTO user (email, password, role) VALUES (?, ?, ?)", user.email, user.password, user.role)
+func (r *Repository) SaveUser(user User) (*User, error) {
+	insert, err := r.database.Conn.Exec("INSERT INTO user (email, password, role) VALUES (?, ?, ?)", user.Email, user.Password, user.Role)
 
 	if err != nil {
 		return nil, err
 	}
 
-	defer insert.Close()
+	id, err := insert.LastInsertId()
 
-	return &User{}, nil
+	if err != nil {
+		return nil, err
+	}
+
+	user.Id = int(id)
+
+	return &user, nil
 }

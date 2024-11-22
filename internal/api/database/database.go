@@ -10,6 +10,7 @@ import (
 
 type Conn interface {
 	Query(query string, params ...any) (*sql.Rows, error)
+	Exec(query string, params ...any) (sql.Result, error)
 	QueryRow(query string, params ...any) *sql.Row
 	Close() error
 }

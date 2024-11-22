@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"consult/internal/api/repository"
 	"net/http"
 	"time"
 
@@ -30,10 +31,6 @@ func (h *Handler) Login(c echo.Context) error {
 	}
 
 	user, err := h.repository.GetUserByEmail(u.Email)
-	// res := h.database.Conn.QueryRow("SELECT * FROM user WHERE email = ?", u.Email)
-
-	// var password string
-	// err := res.Scan(&claims.Id, &claims.Email, &password, &claims.Role)
 
 	claims := &JwtClaims{
 		Id:    user.Id,
@@ -81,16 +78,15 @@ func (h *Handler) Register(c echo.Context) error {
 		return h.BadRequest(http.StatusConflict, "Já existe um email com essa conta.")
 	}
 
-	insert, err := h.database.Conn.Query("INSERT INTO user (email, password, role) VALUES (?, ?, ?)", u.Email, u.Password, u.Role)
+	user, err := h.repository.SaveUser(repository.User{Email: u.Email, Password: u.Password, Role: u.Role})
 
 	if err != nil {
 		return h.BadRequest(http.StatusInternalServerError, err.Error())
 	}
 
-	defer insert.Close()
-
 	return c.JSON(http.StatusCreated, echo.Map{
-		"email": u.Email,
-		"role":  u.Role,
+		"id":    user.Id,
+		"email": user.Email,
+		"role":  user.Role,
 	})
 }

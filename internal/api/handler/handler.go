@@ -14,7 +14,7 @@ type Handler struct {
 }
 
 func New(database *database.Database, config *viper.Viper) *Handler {
-	repository := repository.New(*database)
+	repository := repository.New(database, config)
 	return &Handler{repository, config}
 }
 
